@@ -6,6 +6,8 @@ import child_process from "child_process";
 import cors from "cors";
 import bodyParser from "body-parser";
 
+const MaxCycles = 500000;
+
 // Create a new express application instance
 const app: express.Application = express();
 app.use(cors());
@@ -50,7 +52,7 @@ app.post("/submit/:uid/:problem/", function(req, res) {
 
   fs.writeFile(`${personalDir}/${filename}`, req.body.vasm, () => {
     child_process.exec(
-        `cd ${personalDir} && "../../hovalaag/hoval.exe" ${problem} ./${filename}`,
+        `cd ${personalDir} && "../../hovalaag/hoval.exe" ${problem} -m ${MaxCycles} ./${filename}`,
         (error, stdout, stderr) => {
           if (error) console.error(error);
           if (stdout.includes("SUCCESSFUL COMPLETION")) {
@@ -101,7 +103,7 @@ app.post("/trace/:uid/:problem/", function(req, res) {
     if (err) console.log(err);
     // Execute program
     child_process.exec(
-        `cd ${personalDir} && "../../hovalaag/hoval.exe" ${problem} -t 1 -c ./${filename}`,
+        `cd ${personalDir} && "../../hovalaag/hoval.exe" ${problem} -t 1 -c -m ${MaxCycles} ./${filename}`,
         (error, stdout, stderr) => {
           if (error) console.error(error);
           res.json({
@@ -141,7 +143,7 @@ app.post("/:uid/:problem/", function(req, res) {
 
   fs.writeFile(`${personalDir}/${filename}`, req.body.vasm, () => {
     child_process.exec(
-        `cd ${personalDir} && "../../hovalaag/hoval.exe" ${problem} ./${filename}`,
+        `cd ${personalDir} && "../../hovalaag/hoval.exe" ${problem} -m ${MaxCycles} ./${filename}`,
         (error, stdout, stderr) => {
           if (error) console.error(error);
           res.json({

@@ -77,9 +77,9 @@ The Arithmetic &amp; Logic Unit can perform one of sixteen possible computations
 <tr><td><s>1111</s></td><td><s>BCD A+B+F</s>&nbsp;</td><td><s>binary-coded duodecimal add with carry</s></td></tr>
 </table>
 
-Note 1: A>>1 (1000b) causes the F operation to use the bottom bit of A instead
+Note 1: A>>1 (0100b) causes the F operation to use the bottom bit of A instead
 of the hidden top bit of the ALU operation when computing the new value of F.
-This means you can load the bottom bit of A into F using NEG(A>>1).
+This means you can load the bottom bit of A into F using F=NEG(A>>1).
 
 Note 2: the BCD instructions, which compute base-12 arithmetic,
 are not supported by the HOVALAAG assembler or the HOVALAAG emulator.
