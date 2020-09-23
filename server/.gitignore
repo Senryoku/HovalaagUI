@@ -2,6 +2,7 @@
 node_modules
 /dist
 /user_data
+/data/leaderboard.json
 
 # local env files
 .env.local

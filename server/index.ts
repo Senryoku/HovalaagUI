@@ -20,9 +20,97 @@ function getPersonalDir(req: any) {
   return personalDir;
 }
 
+app.get("/instructions", function(req, res) {
+  res.sendFile("./hovalaag/sample.vasm", {root: "."});
+});
+
 app.get("/log/:uid", function(req, res) {
   const personalDir = getPersonalDir(req);
   res.sendFile("/log.html", {root: personalDir});
+});
+
+let Leaderboard: {[id: string]: any} = {};
+if (fs.existsSync('data/leaderboard.json')) {
+  Leaderboard = JSON.parse(fs.readFileSync('data/leaderboard.json').toString());
+}
+
+app.get("/leaderboard", function(req, res) { res.json(Leaderboard); });
+
+app.post("/submit/:uid/:problem/", function(req, res) {
+  const problem = req.params.problem;
+  const uid = req.params.uid.substr(0, 256);
+  if (!["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"]
+           .includes(problem)) {
+    res.json({error: "Invalid problem"});
+    return;
+  }
+
+  const personalDir = getPersonalDir(req);
+  const filename = `${problem}.vasm`;
+
+  fs.writeFile(`${personalDir}/${filename}`, req.body.vasm, () => {
+    child_process.exec(
+        `cd ${personalDir} && "../../hovalaag/hoval.exe" ${problem} ./${filename}`,
+        (error, stdout, stderr) => {
+          if (error) console.error(error);
+          if (stdout.includes("SUCCESSFUL COMPLETION")) {
+            const match =
+                stdout.match(/: *([\d.]+) cycles - ([\d.]+) instructions/);
+            if (match) {
+              const score = {
+                cycles: parseFloat(match[1]),
+                instructions: parseInt(match[2])
+              };
+              if (!(problem in Leaderboard)) Leaderboard[problem] = {};
+
+              if (uid in Leaderboard[problem]) {
+                score.cycles =
+                    Math.min(score.cycles, Leaderboard[problem][uid].cycles);
+                score.instructions = Math.min(
+                    score.cycles, Leaderboard[problem][uid].instructions);
+              }
+              Leaderboard[problem][uid] = score;
+              fs.writeFileSync(
+                  "data/leaderboard.json", JSON.stringify(Leaderboard));
+            }
+          }
+          res.json({
+            error: error ? error.message : null,
+            stderr: stderr,
+            stdout: stdout
+          });
+        });
+  });
+});
+
+app.post("/trace/:uid/:problem/", function(req, res) {
+  const problem = req.params.problem;
+  if (!["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"]
+           .includes(problem)) {
+    res.json({error: "Invalid problem"});
+    return;
+  }
+
+  const personalDir = getPersonalDir(req);
+  const filename = `${problem}.vasm`;
+
+  // Create personal directory if needed
+
+  // Write VASM file to disk
+  fs.writeFile(`${personalDir}/${filename}`, req.body.vasm, (err) => {
+    if (err) console.log(err);
+    // Execute program
+    child_process.exec(
+        `cd ${personalDir} && "../../hovalaag/hoval.exe" ${problem} -t 1 -c ./${filename}`,
+        (error, stdout, stderr) => {
+          if (error) console.error(error);
+          res.json({
+            error: error ? error.message : null,
+            stderr: stderr,
+            stdout: stdout
+          });
+        });
+  });
 });
 
 const Problems: {[id: string]: string} = {};
@@ -54,36 +142,6 @@ app.post("/:uid/:problem/", function(req, res) {
   fs.writeFile(`${personalDir}/${filename}`, req.body.vasm, () => {
     child_process.exec(
         `cd ${personalDir} && "../../hovalaag/hoval.exe" ${problem} ./${filename}`,
-        (error, stdout, stderr) => {
-          if (error) console.error(error);
-          res.json({
-            error: error ? error.message : null,
-            stderr: stderr,
-            stdout: stdout
-          });
-        });
-  });
-});
-
-app.post("/trace/:uid/:problem/", function(req, res) {
-  const problem = req.params.problem;
-  if (!["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"]
-           .includes(problem)) {
-    res.json({error: "Invalid problem"});
-    return;
-  }
-
-  const personalDir = getPersonalDir(req);
-  const filename = `${problem}.vasm`;
-
-  // Create personal directory if needed
-
-  // Write VASM file to disk
-  fs.writeFile(`${personalDir}/${filename}`, req.body.vasm, (err) => {
-    if (err) console.log(err);
-    // Execute program
-    child_process.exec(
-        `cd ${personalDir} && "../../hovalaag/hoval.exe" ${problem} -t 1 -c ./${filename}`,
         (error, stdout, stderr) => {
           if (error) console.error(error);
           res.json({

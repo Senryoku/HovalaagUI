@@ -1,55 +1,204 @@
 <template>
-  <div style="display:flex">
-    <div style="min-width:40vw">
+  <div class="main-container">
+    <div style="grid-area: left-col;">
       <div>
         <div class="vasm-controls">
           <div>Solution - VASM</div>
+          <div>
+            <label for="problem-select">Problem:</label>
+            <select v-model="problem" id="problem-select">
+              <option
+                v-for="i in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]"
+                :key="i"
+                :value="i"
+                >{{ i }}</option
+              >
+            </select>
+          </div>
           <div>
             <button @click="run">Run</button>
             <button @click="debug">Debug</button>
           </div>
         </div>
-        <textarea placeholder="VASM" v-model="vasm" rows="20" style="width:100%"></textarea>
+        <textarea
+          placeholder="VASM"
+          v-model="vasm"
+          rows="20"
+          style="width:100%; box-sizing: border-box;"
+          spellcheck="false"
+        ></textarea>
       </div>
       <!--<pre>{{response}}</pre>-->
-      <pre v-if="response.error">{{response.error}}</pre>
-      <pre v-if="response.stdout">{{response.stdout}}</pre>
-      <pre v-if="response.stderr" class="stderr">{{response.stderr}}</pre>
+      <!--<pre v-if="response.error">{{ response.error }}</pre>-->
+      <pre v-if="response.stdout" id="console-stdout">{{
+        response.stdout
+      }}</pre>
+      <pre v-if="response.stderr" id="console-stderr" class="stderr">{{
+        response.stderr
+      }}</pre>
     </div>
-    <div style="margin-left:1em">
-      <label for="problem-select">Problem:</label>
-      <select v-model="problem" id="problem-select">
-        <option v-for="i in [1, 2, 3, 4, 5, 6, 7, 8 ,9, 10, 11, 12, 13]" :key="i" :value="i">{{i}}</option>
-      </select>
-      <ProblemDescription :problem="problem" />
+    <div style="grid-area: right-col; margin-left:1em">
+      <div>
+        <div class="tabs">
+          <div
+            v-for="name in [
+              'Instructions',
+              'Problem Description',
+              'Trace',
+              'Leaderboard'
+            ]"
+            :key="name"
+            @click="selectedTab = name"
+            :class="{ selected: selectedTab == name }"
+          >
+            {{ name }}
+          </div>
+        </div>
+        <div class="displayed-tab">
+          <!--
+          <div v-show="selectedTab === 'Hovalaag'">
+            <pre>{{ hovalaagDescription }}</pre>
+          </div>
+		  -->
+          <ProblemDescription
+            v-show="selectedTab === 'Problem Description'"
+            :problem="problem"
+          />
+          <div v-show="selectedTab === 'Instructions'">
+            <pre>{{ instructions }}</pre>
+          </div>
+          <div
+            v-show="selectedTab === 'Trace'"
+            v-html="debugLog"
+            class="logs"
+          ></div>
+          <div v-show="selectedTab === 'Leaderboard'">
+            <div>
+              <input
+                type="text"
+                placeholder="User Name"
+                v-model="userName"
+                maxlength="256"
+              />
+              <button
+                @click="submitScore"
+                :class="{ disabled: userName === '' }"
+              >
+                Submit Score
+              </button>
+              <button @click="loadLeaderboard">Refresh</button>
+            </div>
+            <div
+              v-if="
+                !leaderboard ||
+                  !leaderboard[problem] ||
+                  Object.values(leaderboard[problem]) === 0
+              "
+              style="text-align:center; padding: 1em;"
+            >
+              No leaderboard entry for this problem yet.
+            </div>
+            <div v-else>
+              <h2 style="text-align: center">
+                Leaderboard for Problem #{{ problem }}
+              </h2>
+              <leaderboard :data="leaderboard[problem]"></leaderboard>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+    <footer>
+      Hovalaag by Sean Barrett (<a
+        href="https://silverspaceship.com/hovalaag/"
+        target="_blank"
+        >https://silverspaceship.com/hovalaag/</a
+      >) - UI by Senryoku (<a href="https://senryoku.github.io/" target="_blank"
+        >https://http://senryoku.github.io/</a
+      >)
+    </footer>
   </div>
-  <div v-html="debugLog" class="logs"></div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
 import ProblemDescription from "./components/ProblemDescription.vue";
+import Leaderboard from "./components/Leaderboard.vue";
 import { v4 as uuidv4 } from "uuid";
+
+const typingAnimations: { [id: string]: any } = {};
+function typingAnimation(el: HTMLElement, text: string) {
+  console.log({ innertext: el.innerText });
+  if (el.id in typingAnimations) {
+    clearInterval(typingAnimations[el.id].interval);
+  }
+  typingAnimations[el.id] = {
+    el: el,
+    text: text,
+    lastUpdate: Date.now(),
+    length: 0,
+    typingSpeed: (1.5 * text.length) / 1000,
+    next: function() {
+      const _this = typingAnimations[el.id];
+      const now = Date.now();
+      const dt = now - _this.lastUpdate;
+      _this.lastUpdate = now;
+      _this.length += dt * _this.typingSpeed;
+      _this.el.innerText = _this.text.substring(0, _this.length);
+      if (_this.length > _this.text.length) {
+        _this.el.innerText = _this.text;
+        clearInterval(_this.interval);
+      }
+    }
+  };
+
+  typingAnimations[el.id].interval = setInterval(
+    typingAnimations[el.id].next,
+    0
+  );
+}
 
 export default defineComponent({
   name: "App",
   components: {
-    ProblemDescription
+    ProblemDescription,
+    Leaderboard
   },
   data: function() {
-    return { uid: "", problem: 1, vasm: "", response: "...", debugLog: "" };
+    return {
+      uid: "",
+      problem: 1,
+      vasm: "",
+      response: { stdout: "Waiting for command...", stderr: "" },
+      debugLog: "Run in Debug to get a trace of your program.",
+      selectedTab: "Instructions",
+      hovalaagDescription: "",
+      instructions: "",
+      userName: "",
+      leaderboard: {}
+    };
   },
-  mounted: function() {
+  mounted: async function() {
     const uid: any = localStorage.getItem(`uid`);
     if (uid) this.uid = uid;
     else {
       this.uid = uuidv4();
       localStorage.setItem(`uid`, this.uid);
     }
+    const userName: any = localStorage.getItem(`userName`);
+    if (userName) this.userName = userName;
     const currentProblem: any = localStorage.getItem(`problem`);
     if (currentProblem) this.problem = +currentProblem;
     this.loadVasm();
+
+    this.hovalaagDescription = await (
+      await fetch("http://localhost:3001/")
+    ).text();
+    this.instructions = await (
+      await fetch("http://localhost:3001/instructions")
+    ).text();
+
+    this.loadLeaderboard();
   },
   watch: {
     vasm: function() {
@@ -58,6 +207,15 @@ export default defineComponent({
     problem: function() {
       this.loadVasm();
       localStorage.setItem(`problem`, this.problem.toString());
+    },
+    response: function() {
+      let el = document.getElementById("console-stdout");
+      if (el) typingAnimation(el, this.response.stdout);
+      el = document.getElementById("console-stderr");
+      if (el) typingAnimation(el, this.response.stderr);
+    },
+    username: function() {
+      localStorage.setItem(`userName`, this.userName);
     }
   },
   methods: {
@@ -108,12 +266,50 @@ export default defineComponent({
       } catch (e) {
         console.error("Caught Error: " + e);
       }
+    },
+    submitScore: async function() {
+      try {
+        const r = await fetch(
+          `http://localhost:3001/submit/${this.userName}/${this.problem}`,
+          {
+            method: "POST",
+            mode: "cors",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ vasm: this.vasm })
+          }
+        );
+        this.response = await r.json();
+        this.loadLeaderboard();
+      } catch (e) {
+        this.response = e;
+      }
+    },
+    loadLeaderboard: async function() {
+      this.leaderboard = await (
+        await fetch("http://localhost:3001/leaderboard")
+      ).json();
     }
   }
 });
 </script>
 
 <style>
+a,
+a:visited {
+  color: white;
+}
+
+html {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 html,
 input,
 select,
@@ -123,14 +319,11 @@ textarea {
   background-color: #111;
 }
 
+input,
 select,
 button {
   padding: 0.2em 0.5em;
   margin: 0.25em;
-}
-
-button:hover {
-  cursor: pointer;
 }
 
 input,
@@ -141,11 +334,46 @@ textarea {
   border-radius: 0.25em;
 }
 
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+textarea {
+  padding: 0.25em 0.5em;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+button:hover {
+  cursor: pointer;
+  color: white;
+  border-color: white;
+}
+
+button:active {
+  transform: translateY(2px);
+}
+
+pre,
+textarea {
+  font-family: "Consolas", "Inconsolata", monospace;
+}
+
+.disabled {
+  color: gray;
+  pointer-events: none;
+}
+
+.main-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr auto;
+  grid-template-areas:
+    "left-col right-col"
+    "footer footer";
+  box-sizing: border-box;
+  min-height: calc(100vh - 2em);
   margin: 1em;
+}
+
+footer {
+  margin-top: 2em;
+  margin-bottom: 1em;
 }
 
 .stderr {
@@ -162,6 +390,37 @@ pre {
   align-items: baseline;
 }
 
+.tabs {
+  display: flex;
+}
+
+.tabs > div {
+  border-left: solid 1px #8198b1;
+  border-right: solid 1px #8198b1;
+  border-top: solid 1px #8198b1;
+  padding: 0.25em 0.5em;
+  border-radius: 5px 5px 0 0;
+}
+
+.tabs > div.selected {
+  border-bottom: solid 1px black;
+}
+
+.tabs > div:not(.selected) {
+  cursor: pointer;
+}
+
+.displayed-tab {
+  border: solid 1px #8198b1;
+  margin-top: -1px;
+  border-radius: 0 5px 5px 5px;
+  padding: 0.5em;
+}
+
+.displayed-tab pre {
+  margin: 0;
+}
+
 .logs table {
   margin: auto;
   border: 0;
@@ -175,7 +434,7 @@ pre {
 }
 
 .logs table td {
-  padding: 0 0.25em;
+  padding: 0 0.5em;
   border: solid 1px #8198b1;
 }
 
