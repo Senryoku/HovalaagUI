@@ -12,10 +12,17 @@ app.use(cors());
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 
+// Request<ParamsDictionary, any, any, QueryString.ParsedQs> ?
+function getPersonalDir(req: any) {
+  const uid = req.params.uid;  // req.ip.replace(/[^\w\s]/gi, '');
+  const personalDir = `./user_data/${uid}`;
+  if (!fs.existsSync(personalDir)) fs.mkdirSync(personalDir);
+  return personalDir;
+}
 
-app.get("/log/", function(req, res) {
-  console.log("Log");
-  res.sendFile("/log.html", {root: "hovalaag"});
+app.get("/log/:uid", function(req, res) {
+  const personalDir = getPersonalDir(req);
+  res.sendFile("/log.html", {root: personalDir});
 });
 
 const Problems: {[id: string]: string} = {};
@@ -25,26 +32,30 @@ app.get("/:problem/", function(req, res) {
   else {
     child_process.exec(
         `cd ./hovalaag/ && hoval.exe ${req.params.problem}`, (error, stdout, stderr) => {
-          if (error) {
-            res.send(`error: ${error.message}`);
-            return;
-          }
-          if (stderr) {
-            res.send(`stderr: ${stderr}`);
-            return;
-          }
+          if (error) console.error(`error: ${error.message}`);
+          if (stderr) console.error(`stderr: ${stderr}`);
           res.send(stdout);
           Problems[req.params.problem] = stdout;
         });
   }
 });
 
-app.post("/:problem/", function(req, res) {
-  const filename = `vasm/${req.ip.replace(/[^\w\s]/gi, '')}.vasm`;
-  fs.writeFile(`./hovalaag/${filename}`, req.body.vasm, () => {
+app.post("/:uid/:problem/", function(req, res) {
+  const problem = req.params.problem;
+  if (!["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"]
+           .includes(problem)) {
+    res.json({error: "Invalid problem"});
+    return;
+  }
+
+  const personalDir = getPersonalDir(req);
+  const filename = `${problem}.vasm`;
+
+  fs.writeFile(`${personalDir}/${filename}`, req.body.vasm, () => {
     child_process.exec(
-        `cd ./hovalaag/ && hoval.exe ${req.params.problem} ${filename}`,
+        `cd ${personalDir} && "../../hovalaag/hoval.exe" ${problem} ./${filename}`,
         (error, stdout, stderr) => {
+          if (error) console.error(error);
           res.json({
             error: error ? error.message : null,
             stderr: stderr,
@@ -54,23 +65,27 @@ app.post("/:problem/", function(req, res) {
   });
 });
 
-app.post("/logs/:problem/", function(req, res) {
-  const filename = `vasm/${req.ip.replace(/[^\w\s]/gi, '')}.vasm`;
-  fs.writeFile(`./hovalaag/${filename}`, req.body.vasm, () => {
+app.post("/trace/:uid/:problem/", function(req, res) {
+  const problem = req.params.problem;
+  if (!["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"]
+           .includes(problem)) {
+    res.json({error: "Invalid problem"});
+    return;
+  }
+
+  const personalDir = getPersonalDir(req);
+  const filename = `${problem}.vasm`;
+
+  // Create personal directory if needed
+
+  // Write VASM file to disk
+  fs.writeFile(`${personalDir}/${filename}`, req.body.vasm, (err) => {
+    if (err) console.log(err);
+    // Execute program
     child_process.exec(
-        `cd ./hovalaag/ && hoval.exe ${req.params.problem} -t 1 -c ${filename}`,
+        `cd ${personalDir} && "../../hovalaag/hoval.exe" ${problem} -t 1 -c ./${filename}`,
         (error, stdout, stderr) => {
-          /*
-                    if (error) {
-                      res.send(`error: ${error.message}`);
-                      return;
-                    }
-                    if (stderr) {
-                      res.send(`stderr: ${stderr}`);
-                      return;
-                    }
-                            res.send(stdout);
-                */
+          if (error) console.error(error);
           res.json({
             error: error ? error.message : null,
             stderr: stderr,
@@ -80,19 +95,14 @@ app.post("/logs/:problem/", function(req, res) {
   });
 });
 
-app.get("/", function(req, res) {
-  child_process.exec(`cd ./hovalaag/ && hoval.exe`, (error, stdout, stderr) => {
-    if (error) {
-      res.send(`error: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      res.send(`stderr: ${stderr}`);
-      return;
-    }
-    res.send(stdout);
-  });
+let HovalaagInstructions = "";
+child_process.exec(`cd ./hovalaag/ && hoval.exe`, (error, stdout, stderr) => {
+  if (error) console.error(`error: ${error.message}`);
+  if (stderr) console.error(`stderr: ${stderr}`);
+  HovalaagInstructions = stdout;
 });
+
+app.get("/", function(req, res) { res.send(HovalaagInstructions); });
 
 const Port = 3001;
 app.listen(Port, function() { console.log(`Listening on port ${Port}...`); });

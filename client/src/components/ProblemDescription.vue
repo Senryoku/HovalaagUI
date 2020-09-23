@@ -1,7 +1,6 @@
 <template>
   <div class="hello">
-    <button @click="get">Get</button>
-    <pre>{{response}}</pre>
+    <pre>{{ response }}</pre>
   </div>
 </template>
 
@@ -9,7 +8,7 @@
 import { defineComponent } from "vue";
 
 export default defineComponent({
-  name: "HelloWorld",
+  name: "ProblemDescription",
   props: {
     problem: { type: Number, required: true }
   },
@@ -18,7 +17,6 @@ export default defineComponent({
   },
   methods: {
     get: async function() {
-      this.response = "Fetching...";
       try {
         const r = await fetch(`http://localhost:3001/${this.problem}`);
         this.response = await r.text();
@@ -37,6 +35,3 @@ export default defineComponent({
   }
 });
 </script>
-
-<style scoped>
-</style>
