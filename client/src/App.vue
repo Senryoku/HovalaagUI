@@ -114,7 +114,7 @@
         target="_blank"
         >https://silverspaceship.com/hovalaag/</a
       >) - UI by Senryoku (<a href="https://senryoku.github.io/" target="_blank"
-        >https://http://senryoku.github.io/</a
+        >https://senryoku.github.io/</a
       >)
     </footer>
   </div>
