@@ -6,6 +6,8 @@ Web based UI for Hovalaag by Sean Barrett (http://silverspaceship.com/hovalaag/)
 
 # Run locally
 
+Drop all the files of your copy of hovalaag in `server/hovalaag`
+
 Run the node server:
 ```
 cd server && npm run dev
