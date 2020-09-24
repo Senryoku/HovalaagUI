@@ -122,6 +122,8 @@ import Leaderboard from "./components/Leaderboard.vue";
 import { v4 as uuidv4 } from "uuid";
 import typingAnimation from "./TypingAnimation";
 
+const apiHost = `http://${window.location.hostname}:3001`;
+
 export default defineComponent({
   name: "App",
   components: {
@@ -185,17 +187,14 @@ export default defineComponent({
     },
     run: async function() {
       try {
-        const r = await fetch(
-          `http://localhost:3001/${this.uid}/${this.problem}`,
-          {
-            method: "POST",
-            mode: "cors",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ vasm: this.vasm })
-          }
-        );
+        const r = await fetch(`${apiHost}/${this.uid}/${this.problem}`, {
+          method: "POST",
+          mode: "cors",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ vasm: this.vasm })
+        });
         this.response = await r.json();
       } catch (e) {
         console.error("Caught Error: " + e);
@@ -203,22 +202,19 @@ export default defineComponent({
     },
     debug: async function() {
       try {
-        const r = await fetch(
-          `http://localhost:3001/trace/${this.uid}/${this.problem}`,
-          {
-            method: "POST",
-            mode: "cors",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ vasm: this.vasm })
-          }
-        );
+        const r = await fetch(`${apiHost}/trace/${this.uid}/${this.problem}`, {
+          method: "POST",
+          mode: "cors",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ vasm: this.vasm })
+        });
         this.response = await r.json();
         if (
           this.response.stderr.includes("Saving execution trace to 'log.html'")
         ) {
-          const log = await fetch(`http://localhost:3001/log/${this.uid}`);
+          const log = await fetch(`${apiHost}/log/${this.uid}`);
           this.debugLog = (await log.text())
             .replace(
               'cellspacing=0 border=1 cellpadding=2 bordercolor="#808080"',
@@ -235,7 +231,7 @@ export default defineComponent({
     submitScore: async function() {
       try {
         const r = await fetch(
-          `http://localhost:3001/submit/${this.userName}/${this.problem}`,
+          `${apiHost}/submit/${this.userName}/${this.problem}`,
           {
             method: "POST",
             mode: "cors",
@@ -252,9 +248,7 @@ export default defineComponent({
       }
     },
     loadLeaderboard: async function() {
-      this.leaderboard = await (
-        await fetch("http://localhost:3001/leaderboard")
-      ).json();
+      this.leaderboard = await (await fetch(`${apiHost}/leaderboard`)).json();
     }
   }
 });
