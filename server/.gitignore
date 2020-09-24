@@ -3,8 +3,7 @@ node_modules
 /dist
 /user_data
 /data/leaderboard.json
-/server/hovalaag/*
-!/server/hovalaag/readme.txt
+/hovalaag/*
 
 # local env files
 .env.local
