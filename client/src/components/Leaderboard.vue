@@ -3,13 +3,13 @@
     <thead>
       <tr>
         <td>Name</td>
-        <td>Cycles</td>
-        <td>Instructions</td>
+        <td @click="order = 'cycles'" class="clickable">Cycles</td>
+        <td @click="order = 'instructions'" class="clickable">Instructions</td>
       </tr>
     </thead>
     <tbody>
-      <tr v-for="(val, key) in data" :key="key">
-        <td>{{ key }}</td>
+      <tr v-for="val in ordered" :key="val.name">
+        <td>{{ val.name }}</td>
         <td>{{ val.cycles }}</td>
         <td>{{ val.instructions }}</td>
       </tr>
@@ -21,7 +21,29 @@
 import { defineComponent } from "vue";
 export default defineComponent({
   props: {
-    data: { type: Object }
+    leaderboard: { type: Object }
+  },
+  data: function() {
+    return {
+      order: "cycles"
+    };
+  },
+  computed: {
+    ordered: function(): any {
+      if (!this.leaderboard) return [];
+      const d = this.leaderboard;
+
+      const orderedKey = Object.keys(d).sort(
+        (lhs, rhs) => d[lhs][this.order] - d[rhs][this.order]
+      );
+      return orderedKey.map(key => {
+        return {
+          name: key,
+          cycles: d[key].cycles,
+          instructions: d[key].instructions
+        };
+      });
+    }
   }
 });
 </script>

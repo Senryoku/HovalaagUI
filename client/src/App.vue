@@ -102,7 +102,7 @@
               <h2 style="text-align: center">
                 Leaderboard for Problem #{{ problem }}
               </h2>
-              <leaderboard :data="leaderboard[problem]"></leaderboard>
+              <leaderboard :leaderboard="leaderboard[problem]"></leaderboard>
             </div>
           </div>
         </div>
@@ -214,7 +214,7 @@ export default defineComponent({
       el = document.getElementById("console-stderr");
       if (el) typingAnimation(el, this.response.stderr);
     },
-    username: function() {
+    userName: function() {
       localStorage.setItem(`userName`, this.userName);
     }
   },
@@ -357,6 +357,11 @@ textarea {
 .disabled {
   color: gray;
   pointer-events: none;
+}
+
+.clickable:hover {
+  color: white;
+  cursor: pointer;
 }
 
 .main-container {
