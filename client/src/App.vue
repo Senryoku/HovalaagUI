@@ -55,11 +55,6 @@
           </div>
         </div>
         <div class="displayed-tab">
-          <!--
-          <div v-show="selectedTab === 'Hovalaag'">
-            <pre>{{ hovalaagDescription }}</pre>
-          </div>
-		  -->
           <ProblemDescription
             v-show="selectedTab === 'Problem Description'"
             :problem="problem"
@@ -125,38 +120,7 @@ import { defineComponent } from "vue";
 import ProblemDescription from "./components/ProblemDescription.vue";
 import Leaderboard from "./components/Leaderboard.vue";
 import { v4 as uuidv4 } from "uuid";
-
-const typingAnimations: { [id: string]: any } = {};
-function typingAnimation(el: HTMLElement, text: string) {
-  console.log({ innertext: el.innerText });
-  if (el.id in typingAnimations) {
-    clearInterval(typingAnimations[el.id].interval);
-  }
-  typingAnimations[el.id] = {
-    el: el,
-    text: text,
-    lastUpdate: Date.now(),
-    length: 0,
-    typingSpeed: (1.5 * text.length) / 1000,
-    next: function() {
-      const _this = typingAnimations[el.id];
-      const now = Date.now();
-      const dt = now - _this.lastUpdate;
-      _this.lastUpdate = now;
-      _this.length += dt * _this.typingSpeed;
-      _this.el.innerText = _this.text.substring(0, _this.length);
-      if (_this.length > _this.text.length) {
-        _this.el.innerText = _this.text;
-        clearInterval(_this.interval);
-      }
-    }
-  };
-
-  typingAnimations[el.id].interval = setInterval(
-    typingAnimations[el.id].next,
-    0
-  );
-}
+import typingAnimation from "./TypingAnimation";
 
 export default defineComponent({
   name: "App",
@@ -172,7 +136,6 @@ export default defineComponent({
       response: { stdout: "Waiting for command...", stderr: "" },
       debugLog: "Run in Debug to get a trace of your program.",
       selectedTab: "Instructions",
-      hovalaagDescription: "",
       instructions: "",
       userName: "",
       leaderboard: {}
@@ -191,9 +154,6 @@ export default defineComponent({
     if (currentProblem) this.problem = +currentProblem;
     this.loadVasm();
 
-    this.hovalaagDescription = await (
-      await fetch("http://localhost:3001/")
-    ).text();
     this.instructions = await (
       await fetch("http://localhost:3001/instructions")
     ).text();
@@ -208,14 +168,14 @@ export default defineComponent({
       this.loadVasm();
       localStorage.setItem(`problem`, this.problem.toString());
     },
+    userName: function() {
+      localStorage.setItem(`userName`, this.userName);
+    },
     response: function() {
       let el = document.getElementById("console-stdout");
       if (el) typingAnimation(el, this.response.stdout);
       el = document.getElementById("console-stderr");
       if (el) typingAnimation(el, this.response.stderr);
-    },
-    userName: function() {
-      localStorage.setItem(`userName`, this.userName);
     }
   },
   methods: {
@@ -238,7 +198,7 @@ export default defineComponent({
         );
         this.response = await r.json();
       } catch (e) {
-        this.response = e;
+        console.error("Caught Error: " + e);
       }
     },
     debug: async function() {
@@ -255,14 +215,19 @@ export default defineComponent({
           }
         );
         this.response = await r.json();
-        const log = await fetch(`http://localhost:3001/log/${this.uid}`);
-        this.debugLog = (await log.text())
-          .replace(
-            'cellspacing=0 border=1 cellpadding=2 bordercolor="#808080"',
-            ""
-          )
-          .replaceAll("bgcolor=#c0ffc0", 'class="jump"')
-          .replaceAll("bgcolor=#ff4040", 'class="error"');
+        if (
+          this.response.stderr.includes("Saving execution trace to 'log.html'")
+        ) {
+          const log = await fetch(`http://localhost:3001/log/${this.uid}`);
+          this.debugLog = (await log.text())
+            .replace(
+              'cellspacing=0 border=1 cellpadding=2 bordercolor="#808080"',
+              ""
+            )
+            .replaceAll("bgcolor=#c0ffc0", 'class="jump"')
+            .replaceAll("bgcolor=#ff4040", 'class="error"');
+          this.selectedTab = "Trace";
+        }
       } catch (e) {
         console.error("Caught Error: " + e);
       }
@@ -283,7 +248,7 @@ export default defineComponent({
         this.response = await r.json();
         this.loadLeaderboard();
       } catch (e) {
-        this.response = e;
+        console.error("Caught Error: " + e);
       }
     },
     loadLeaderboard: async function() {
