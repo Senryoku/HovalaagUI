@@ -53,7 +53,7 @@ app.post("/submit/:uid/:problem/", function(req, res) {
 
   fs.writeFile(`${personalDir}/${filename}`, req.body.vasm, () => {
     child_process.exec(
-        `cd ${personalDir} && "../../hovalaag/hoval.exe" ${problem} -m ${MaxCycles} ./${filename}`,
+        `cd ${personalDir} && ${Wine} "../../hovalaag/hoval.exe" ${problem} -m ${MaxCycles} ./${filename}`,
         (error, stdout, stderr) => {
           if (error) console.error(error);
           if (stdout.includes("SUCCESSFUL COMPLETION")) {
