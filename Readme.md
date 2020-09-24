@@ -2,6 +2,8 @@
 
 Web based UI for Hovalaag by Sean Barret (http://silverspaceship.com/hovalaag/)
 
+![HovalaagUI-min](https://user-images.githubusercontent.com/1338143/94086330-e7c81900-fe0a-11ea-8d36-29670f7c711e.png)
+
 # Run locally
 
 Run the node server:
