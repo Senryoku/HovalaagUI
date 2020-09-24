@@ -156,9 +156,7 @@ export default defineComponent({
     if (currentProblem) this.problem = +currentProblem;
     this.loadVasm();
 
-    this.instructions = await (
-      await fetch("http://localhost:3001/instructions")
-    ).text();
+    this.instructions = await (await fetch(`${apiHost}/instructions`)).text();
 
     this.loadLeaderboard();
   },

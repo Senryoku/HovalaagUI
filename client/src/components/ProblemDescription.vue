@@ -18,7 +18,9 @@ export default defineComponent({
   methods: {
     get: async function() {
       try {
-        const r = await fetch(`http://localhost:3001/${this.problem}`);
+        const r = await fetch(
+          `http://${window.location.hostname}:3001/${this.problem}`
+        );
         this.response = await r.text();
       } catch (e) {
         this.response = e;
