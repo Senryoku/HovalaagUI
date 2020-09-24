@@ -7,6 +7,7 @@ import cors from "cors";
 import bodyParser from "body-parser";
 
 const MaxCycles = 500000;
+const Wine = process.platform === "win32" ? "" : "wine ";
 
 // Create a new express application instance
 const app: express.Application = express();
@@ -103,7 +104,7 @@ app.post("/trace/:uid/:problem/", function(req, res) {
     if (err) console.log(err);
     // Execute program
     child_process.exec(
-        `cd ${personalDir} && "../../hovalaag/hoval.exe" ${problem} -t 1 -c -m ${MaxCycles} ./${filename}`,
+        `cd ${personalDir} && ${Wine} "../../hovalaag/hoval.exe" ${problem} -t 1 -c -m ${MaxCycles} ./${filename}`,
         (error, stdout, stderr) => {
           if (error) console.error(error);
           res.json({
@@ -121,7 +122,8 @@ app.get("/:problem/", function(req, res) {
     res.send(Problems[req.params.problem]);
   else {
     child_process.exec(
-        `cd ./hovalaag/ && hoval.exe ${req.params.problem}`, (error, stdout, stderr) => {
+        `cd ./hovalaag/ && ${Wine} hoval.exe ${req.params.problem}`,
+        (error, stdout, stderr) => {
           if (error) console.error(`error: ${error.message}`);
           if (stderr) console.error(`stderr: ${stderr}`);
           res.send(stdout);
@@ -143,7 +145,7 @@ app.post("/:uid/:problem/", function(req, res) {
 
   fs.writeFile(`${personalDir}/${filename}`, req.body.vasm, () => {
     child_process.exec(
-        `cd ${personalDir} && "../../hovalaag/hoval.exe" ${problem} -m ${MaxCycles} ./${filename}`,
+        `cd ${personalDir} && ${Wine} "../../hovalaag/hoval.exe" ${problem} -m ${MaxCycles} ./${filename}`,
         (error, stdout, stderr) => {
           if (error) console.error(error);
           res.json({
@@ -156,7 +158,7 @@ app.post("/:uid/:problem/", function(req, res) {
 });
 
 let HovalaagInstructions = "";
-child_process.exec(`cd ./hovalaag/ && hoval.exe`, (error, stdout, stderr) => {
+child_process.exec(`cd ./hovalaag/ && ${Wine} hoval.exe`, (error, stdout, stderr) => {
   if (error) console.error(`error: ${error.message}`);
   if (stderr) console.error(`stderr: ${stderr}`);
   HovalaagInstructions = stdout;
